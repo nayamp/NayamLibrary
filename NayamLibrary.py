@@ -3,8 +3,8 @@ import numpy as np
 import csv
 low_memory=False
 
-
-## The StartingFilename is the filepath to the csv you want to run analysis on, the OutputFilename is whatever you want to name the output analysis file.
+## The StartingFilename is the filepath to the csv you want to run analysis on, 
+# the OutputFilename is whatever you want to name the output analysis file.
 # StartingFilename = r'C:\Users\nayam_perez\hello\FADatabase-data.csv'
 # OutputFilename = 'FA_Database_Analysis.csv'
 
@@ -13,23 +13,38 @@ low_memory=False
 # newfilename='Deduplicate_CPG_LineName_to_FLOC.csv'
 # df=pd.read_csv(filepath+filename,'r',delimiter=',',index_col=False)
 
-def analyzethis(StartingFilename,OutputFilename):
-    #Here, I'm using the Pandas library's "read_csv" functionality to pull values from the file. I'm also specifying that this won't be a small file with "low_memory=False"
-    df=pd.read_csv(StartingFilename, encoding='ISO-8859-1')
-    #This next command is just looking through each column and finding out if they have any null values at all. I can modify this command to look for any sort of value, or multiple values.
-    missing_info=list(df.columns[df.isnull().any()])
-    #with open is a way to call a csv, and if it doesn't exist, it is created.
+def main(input):
+    count_null_values(input)
+    deduplicate_by_name()
+
+def count_null_values(StartingFilename,OutputFilename):
+    # Using iso-8859-1 encoding because...
+    df = pd.read_csv(StartingFilename, encoding='ISO-8859-1')
+    
+    # This next command is just looking through each column and finding out if they
+    # have any null values at all. I can modify this command to look for any sort 
+    # of value, or multiple values.
+    cols_with_null_vals = list(df.columns[df.isnull().any()])
+    
+    # With open is a way to call a csv, and if it doesn't exist, it is created.
     with open(OutputFilename,'w', newline ='') as MissingNumberFile:
-        MissingWriter = csv.writer(MissingNumberFile, delimiter = ',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        ColumnInfoForUse=[]
-        total_rows=df.shape[0]
-        total="Total Rows:" + str(total_rows)
-        header=["Column Name", "Number of Values Missing", "Percentage Values Missing", total]
+        # MissingWriter is just the function to write to a csv. 
+        # Don't worry about the "ColumnInfoForUse", That's something i'll be 
+        # using for use within the program.
+        MissingWriter = csv.writer(MissingNumberFile, 
+                                   delimiter = ',', 
+                                   quotechar = '"', 
+                                   quoting=csv.QUOTE_MINIMAL)
+        ColumnInfoForUse = []
+        total_rows = df.shape[0]
+        total_str = "Total Rows:" + str(total_rows)
+        header = ["Column Name", "Number of Values Missing", "Percentage Values Missing", total]
         MissingWriter.writerow(header)
-        #MissingWriter is just the function to write to a csv. Don't worry about the "ColumnInfoForUse", That's something i'll be using for use within the program.
-        #This for loop just computes the count of missing value for each column, and then computes the corresponding percentage.
-        #Then, that info is turned into a row to be placed into your output csv.
-        for col in missing_info:
+        
+        # This for loop just computes the count of missing value for each column, 
+        # and then computes the corresponding percentage.
+        # Then, that info is turned into a row to be placed into your output csv.
+        for col in cols_with_null_vals:
             num_missing=str(df[df[col].isnull()==True].shape[0])
             PercentMissing=str((df[df[col].isnull()==True].shape[0]/df.shape[0])*100)
             ColumnInfo=[col,num_missing,PercentMissing]
@@ -47,7 +62,9 @@ def join_by_column(File1,File2,File1Columns,File2Index):
 
     A=A[[File1Columns]]
     B.columns=File2Index
-    ##the above lines are two different examples of dataframe column modification. For A, we choose columns to keep from the original dataframe. For B, we rename the columns.
+    ##the above lines are two different examples of dataframe column modification. 
+    # For A, we choose columns to keep from the original dataframe. 
+    # For B, we rename the columns.
 
     merged = A.merge(B,how='inner', on='LINE',left_index=False,right_index=False,sort=False,copy=False,indicator=False)
     print(merged.head(),A.shape[0],'/n',B.shape[0],'/n',merged.shape[0])
@@ -63,10 +80,13 @@ def join_by_column(File1,File2,File1Columns,File2Index):
 
 
 def Deduplicate_by_name(ColsToDrop,ColsToMerge,ColsToGroupby,Dataframe,Outfile):
-    #Drop columns that aren't needed. If not needed, delete the ".drop()" portion, but leave the .astype(str). This function casts everything as a string, which is needed in the next step
+    #Drop columns that aren't needed. If not needed, delete the ".drop()" portion, 
+    # but leave the .astype(str). This function casts everything as a string, 
+    # which is needed in the next step
     df=Dataframe.drop(ColsToDrop,axis=1).astype(str)
 
-    #Enter the column name/s you'd like to erase duplicates of right after gropuby. The column/s you want rows merged should be right before the .apply statement.
+    #Enter the column name/s you'd like to erase duplicates of right after gropuby.
+    # The column/s you want rows merged should be right before the .apply statement.
     df=df.groupby(ColsToGroupby)[ColsToMerge].apply(','.join).reset_index()
     print(df.head())
     df.to_csv(Outfile,index=False)
